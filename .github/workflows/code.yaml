@@ -1,0 +1,49 @@
+---
+name: "Deployment AMI via packer"
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.PROD_ACCESS}}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_SECRET}}
+      AWS_DEFAULT_REGION: ${{ secrets.PROD_REGION }}
+      packer_version: "1.9.4"
+
+    steps:
+  
+      - name: "Date"
+        run: date
+        
+      - name: "OS"
+        run : cat /etc/issue
+
+      - name: "checkout repo"
+        uses: actions/checkout@v3
+
+      - name: "Packer Installation"
+        uses: hashicorp/setup-packer@main  
+        with:
+          version: ${{ env.packer_version }}
+
+      - name: "Packer Init"
+        run: packer init .
+        working-directory: ./packer/
+
+      - name: "Packer validate"
+        run: packer validate -var-file="prod.pkrvars.hcl"
+        working-directory: ./packer/
+
+      - name: "Packer Format"
+        run: packer fmt .
+        working-directory: ./packer/
+
+      - name: "Packer Build"
+        run: packer build -var-file="prod.pkrvars.hcl"
+        working-directory: ./packer/
